@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educational Quiz Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+
+        .scanner-container {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        #question {
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="scanner-container">
+        <h1>Scan Your Barcode</h1>
+        <video id="video" class="hidden"></video>
+        <button id="startScan">Start Scan</button>
+        <p id="result"></p>
+    </div>
+
+    <div id="question" class="hidden">
+        <h2>Question:</h2>
+        <p id="questionText"></p>
+        <input type="text" id="answerInput" placeholder="Type your answer here">
+        <button id="submitAnswer">Submit Answer</button>
+    </div>
+
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script>
+        const startScanButton = document.getElementById('startScan');
+        const video = document.getElementById('video');
+        const resultElement = document.getElementById('result');
+        const questionElement = document.getElementById('question');
+        const questionText = document.getElementById('questionText');
+        const answerInput = document.getElementById('answerInput');
+        const submitAnswerButton = document.getElementById('submitAnswer');
+
+        let selectedBarcode = '';
+        let questionData = {};
+
+        startScanButton.addEventListener('click', () => {
+            startScanButton.classList.add('hidden');
+            video.classList.remove('hidden');
+            startBarcodeScanner();
+        });
+
+        function startBarcodeScanner() {
+            const codeReader = new ZXing.BrowserBarcodeReader();
+            codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+                if (result) {
+                    selectedBarcode = result.text;
+                    video.classList.add('hidden');
+                    resultElement.innerText = `Barcode scanned: ${selectedBarcode}`;
+                    fetchQuestion(selectedBarcode);
+                }
+                if (err && !(err instanceof ZXing.NotFoundException)) {
+                    console.error(err);
+                }
+            });
+        }
+
+        function fetchQuestion(barcode) {
+            fetch(
+                    `https://script.google.com/macros/s/1N5MB-ijLvfXFxQvCIVueZqhL4khp73B6muAn-Hf7QRI/exec?barcode=${barcode}`)
+                .then(response => response.json())
+                .then(data => {
+                    questionData = data;
+                    if (questionData.question) {
+                        showQuestion();
+                    } else {
+                        resultElement.innerText = 'No question found for this barcode.';
+                    }
+                });
+        }
+
+        function showQuestion() {
+            questionElement.classList.remove('hidden');
+            questionText.innerText = questionData.question;
+        }
+
+        submitAnswerButton.addEventListener('click', () => {
+            const answer = answerInput.value;
+            checkAnswer(answer);
+        });
+
+        function checkAnswer(answer) {
+            if (answer.toLowerCase() === questionData.correctAnswer.toLowerCase()) {
+                alert('Correct!');
+            } else {
+                alert('Wrong answer. Try again!');
+            }
+        }
+    </script>
+</body>
+
+</html>
